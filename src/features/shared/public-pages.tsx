@@ -72,7 +72,7 @@ function PublicShell({ children }: { children: ReactNode }) {
               Kirish
             </Link>
             <Button size="sm" onClick={() => (window.location.href = "/login")} className="hidden sm:inline-flex">
-              Demo ochish
+              Tizimga kirish
             </Button>
             <button
               type="button"
@@ -230,7 +230,7 @@ export function LandingPage() {
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button onClick={() => (window.location.href = "/login")}>
-                Demo panelni ochish <ArrowRight size={16} className="ml-2" />
+                Tizimga kirish <ArrowRight size={16} className="ml-2" />
               </Button>
               <Button variant="secondary" onClick={() => (window.location.href = "/features")}>
                 Imkoniyatlarni ko'rish
@@ -238,7 +238,7 @@ export function LandingPage() {
             </div>
             <div className="mt-10 grid gap-4 sm:grid-cols-3">
               {[
-                ["6+", "faol demo o'quvchi"],
+                ["6+", "faol o'quvchi"],
                 ["3", "nazoratdagi guruh"],
                 ["1 bosish", "ota-onaga tezkor xabar"]
               ].map(([value, label]) => (
@@ -269,15 +269,6 @@ export function LandingPage() {
                     <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">{description}</div>
                   </div>
                 ))}
-              </div>
-            </Card>
-            <Card className="space-y-4">
-              <div className="font-display text-xl font-bold">Demo kirishlar</div>
-              <div className="grid gap-3 text-sm text-slate-500 dark:text-slate-400">
-                <div className="rounded-2xl bg-slate-100 px-4 py-3 dark:bg-slate-800">Admin: admin.demo@example.com</div>
-                <div className="rounded-2xl bg-slate-100 px-4 py-3 dark:bg-slate-800">O'qituvchi: teacher.demo@example.com</div>
-                <div className="rounded-2xl bg-slate-100 px-4 py-3 dark:bg-slate-800">O'quvchi: student.demo@example.com</div>
-                <div className="rounded-2xl bg-primary/10 px-4 py-3 font-medium text-primary">Parol local `.env` orqali belgilanadi</div>
               </div>
             </Card>
           </div>
@@ -438,13 +429,13 @@ export function LandingPage() {
         <Card className="bg-hero-gradient p-8 text-center sm:p-10">
           <div className="mx-auto max-w-3xl">
             <div className="inline-flex rounded-full bg-white/65 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-              Ishga tayyor demo
+              Ishga tayyor tizim
             </div>
             <h2 className="mt-5 font-display text-3xl font-extrabold sm:text-5xl">
               Kurs markazingiz uchun tushunarli, chiroyli va ishlaydigan boshqaruv tizimi
             </h2>
             <p className="mt-4 text-base leading-7 text-slate-600 dark:text-slate-300">
-              Admin, o'qituvchi va o'quvchi rollari bilan tayyor demo panelni ochib, to'lov, davomat va xabarlar oqimini
+              Admin, o'qituvchi va o'quvchi rollari bilan tayyor panelni ochib, to'lov, davomat va xabarlar oqimini
               hozirning o'zida ko'rishingiz mumkin.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
@@ -540,7 +531,7 @@ export function ContactPage() {
           <Card className="space-y-3">
             <div className="font-display text-2xl font-bold">Nimalar bo'yicha murojaat qilishingiz mumkin?</div>
             <div className="space-y-3 text-sm text-slate-500 dark:text-slate-400">
-              <div>Demo ko'rish va tizim oqimini tushunish</div>
+              <div>Tizim oqimini ko'rish va tushunish</div>
               <div>O'quv markazingizga moslab moslashtirish</div>
               <div>Telegram integratsiyasi va notification sozlamalari</div>
               <div>Ko'p filial yoki mobil ilova bosqichlari bo'yicha maslahat</div>
@@ -569,7 +560,7 @@ export function LoginPage() {
   } = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      identifier: "admin.demo@example.com",
+      identifier: "",
       password: "",
       rememberMe: true
     }
@@ -624,12 +615,6 @@ export function LoginPage() {
                 {isSubmitting ? "Tekshirilmoqda..." : "Kirish"}
               </Button>
             </form>
-            <div className="grid gap-3 text-sm text-slate-500 dark:text-slate-400">
-              <div className="surface-muted px-4 py-3">Admin: admin.demo@example.com</div>
-              <div className="surface-muted px-4 py-3">O'qituvchi: teacher.demo@example.com</div>
-              <div className="surface-muted px-4 py-3">O'quvchi: student.demo@example.com</div>
-              <div className="surface-muted px-4 py-3">Parol local `.env` orqali belgilanadi</div>
-            </div>
             <div className="flex flex-col gap-2 text-sm sm:flex-row sm:justify-between">
               <Link to="/forgot-password" className="text-primary">
                 Parolni unutdingizmi?

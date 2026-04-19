@@ -56,8 +56,39 @@ export function LiveUpdatesProvider({ children }: PropsWithChildren) {
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
   const sourceRef = useRef<EventSource | null>(null);
   const reconnectRef = useRef<number | null>(null);
+  const pendingScopesRef = useRef<Set<string>>(new Set());
+  const invalidateTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
+    const clearInvalidationTimer = () => {
+      if (invalidateTimerRef.current) {
+        window.clearTimeout(invalidateTimerRef.current);
+        invalidateTimerRef.current = null;
+      }
+    };
+
+    const flushInvalidations = () => {
+      const scopes = Array.from(pendingScopesRef.current);
+      pendingScopesRef.current.clear();
+      invalidateTimerRef.current = null;
+
+      if (scopes.length) {
+        invalidateByScopes(queryClient, scopes);
+      }
+    };
+
+    const scheduleInvalidation = (scopes?: string[]) => {
+      const values = scopes?.length ? scopes : [...knownScopes];
+
+      values.forEach((scope) => {
+        pendingScopesRef.current.add(scope);
+      });
+
+      if (!invalidateTimerRef.current) {
+        invalidateTimerRef.current = window.setTimeout(flushInvalidations, 450);
+      }
+    };
+
     if (runtimeConfig.useMockApi || !accessToken) {
       if (sourceRef.current) {
         sourceRef.current.close();
@@ -69,6 +100,8 @@ export function LiveUpdatesProvider({ children }: PropsWithChildren) {
         reconnectRef.current = null;
       }
 
+      clearInvalidationTimer();
+      pendingScopesRef.current.clear();
       setStatus("idle");
       setLastSyncAt(null);
       return;
@@ -111,7 +144,7 @@ export function LiveUpdatesProvider({ children }: PropsWithChildren) {
         const payload = JSON.parse(event.data) as LiveEventPayload;
         setStatus("connected");
         setLastSyncAt(payload.sentAt ?? new Date().toISOString());
-        invalidateByScopes(queryClient, payload.scopes);
+        scheduleInvalidation(payload.scopes);
       };
 
       source.onerror = () => {
@@ -141,6 +174,9 @@ export function LiveUpdatesProvider({ children }: PropsWithChildren) {
         sourceRef.current.close();
         sourceRef.current = null;
       }
+
+      clearInvalidationTimer();
+      pendingScopesRef.current.clear();
     };
   }, [accessToken, queryClient]);
 

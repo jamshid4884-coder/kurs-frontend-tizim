@@ -15,8 +15,8 @@ export function AppProviders({ children }: PropsWithChildren) {
             staleTime: runtimeConfig.useMockApi ? Infinity : 5000,
             refetchOnWindowFocus: !runtimeConfig.useMockApi,
             refetchOnReconnect: true,
-            refetchInterval: runtimeConfig.useMockApi ? false : 30000,
-            refetchIntervalInBackground: !runtimeConfig.useMockApi,
+            refetchInterval: false,
+            refetchIntervalInBackground: false,
             retry: runtimeConfig.useMockApi ? 0 : 1
           }
         }

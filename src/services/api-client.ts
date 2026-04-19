@@ -11,8 +11,18 @@ class ApiError extends Error {
   }
 }
 
+const DEFAULT_REQUEST_TIMEOUT_MS = 15000;
+
 function toFriendlyMessage(message: string) {
   const normalized = message.toLowerCase();
+
+  if (
+    normalized.includes("timeout") ||
+    normalized.includes("aborted") ||
+    normalized.includes("the user aborted a request")
+  ) {
+    return "Server 15 soniyada javob bermadi. Internet yoki backend holatini tekshirib qayta urinib ko'ring.";
+  }
 
   if (
     normalized.includes("failed to fetch") ||
@@ -97,6 +107,42 @@ function toApiError(error: unknown) {
   return new ApiError(toFriendlyMessage(message), 0);
 }
 
+async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeoutId = globalThis.setTimeout(() => {
+    controller.abort();
+  }, timeoutMs);
+  const externalSignal = init.signal;
+
+  const abortFromExternalSignal = () => {
+    controller.abort();
+  };
+
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      controller.abort();
+    } else {
+      externalSignal.addEventListener("abort", abortFromExternalSignal, { once: true });
+    }
+  }
+
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: controller.signal
+    });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new ApiError(toFriendlyMessage("timeout"), 0);
+    }
+
+    throw error;
+  } finally {
+    globalThis.clearTimeout(timeoutId);
+    externalSignal?.removeEventListener("abort", abortFromExternalSignal);
+  }
+}
+
 async function parseResponse<T>(response: Response): Promise<T> {
   const contentType = response.headers.get("content-type") || "";
   const isJson = contentType.includes("application/json");
@@ -122,7 +168,7 @@ async function refreshSession() {
   let response: Response;
 
   try {
-    response = await fetch(`${runtimeConfig.apiBaseUrl}/auth/refresh`, {
+    response = await fetchWithTimeout(`${runtimeConfig.apiBaseUrl}/auth/refresh`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -183,7 +229,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   let response: Response;
 
   try {
-    response = await fetch(`${runtimeConfig.apiBaseUrl}${path}`, {
+    response = await fetchWithTimeout(`${runtimeConfig.apiBaseUrl}${path}`, {
       ...rest,
       headers: requestHeaders,
       body
