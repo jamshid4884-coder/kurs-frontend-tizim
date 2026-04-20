@@ -7,6 +7,10 @@ function isVercelMonorepoBuild() {
     if (process.env.VERCEL !== "1") {
         return false;
     }
+    const initialCwd = process.env.INIT_CWD ? resolve(process.env.INIT_CWD) : "";
+    if (initialCwd !== monorepoRoot) {
+        return false;
+    }
     const packageJsonPath = resolve(monorepoRoot, "package.json");
     if (!existsSync(packageJsonPath)) {
         return false;
