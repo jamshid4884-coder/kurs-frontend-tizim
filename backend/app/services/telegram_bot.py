@@ -15,7 +15,7 @@ from uuid import uuid4
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from ..core.config import BASE_DIR
+from ..core.config import BASE_DIR, get_settings
 from ..core.security import decrypt_secret, encrypt_secret
 from ..db.session import SessionLocal
 from ..models import Group, Notification, NotificationStatus, ParentTelegramStatus, PaymentStatus, Student, SystemMessage, TelegramBotSettings
@@ -235,10 +235,36 @@ def _resolved_image(value: str | None, *, default: str) -> str:
     return normalized or default
 
 
+def _normalize_bot_username(value: str | None) -> str | None:
+    normalized = str(value or "").strip().removeprefix("@")
+    return normalized or None
+
+
+def _apply_environment_telegram_defaults(settings: TelegramBotSettings) -> bool:
+    app_settings = get_settings()
+    bot_username = _normalize_bot_username(app_settings.telegram_bot_username)
+    bot_token = str(app_settings.telegram_bot_token or "").strip()
+    changed = False
+
+    if bot_username and not settings.bot_username:
+        settings.bot_username = bot_username
+        changed = True
+
+    if bot_token and not settings.bot_token_cipher:
+        settings.bot_token_cipher = encrypt_secret(bot_token)
+        settings.enabled = True
+        changed = True
+
+    return changed
+
+
 def get_or_create_telegram_settings(db: Session) -> TelegramBotSettings:
     settings = db.get(TelegramBotSettings, SETTINGS_ID)
 
     if settings:
+        if _apply_environment_telegram_defaults(settings):
+            db.commit()
+            db.refresh(settings)
         return settings
 
     settings = TelegramBotSettings(
@@ -250,6 +276,7 @@ def get_or_create_telegram_settings(db: Session) -> TelegramBotSettings:
         payment_template=DEFAULT_PAYMENT_TEXT,
         last_update_id=0,
     )
+    _apply_environment_telegram_defaults(settings)
     db.add(settings)
     db.commit()
     db.refresh(settings)

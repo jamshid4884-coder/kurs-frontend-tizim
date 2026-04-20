@@ -53,6 +53,8 @@ class Settings(BaseSettings):
     jwt_refresh_secret: str = "set-in-local-env"
     demo_user_password: str | None = None
     credential_secret: str | None = None
+    telegram_bot_username: str | None = Field(default=None, alias="TELEGRAM_BOT_USERNAME")
+    telegram_bot_token: str | None = Field(default=None, alias="TELEGRAM_BOT_TOKEN")
     jwt_access_ttl: str = "15m"
     jwt_refresh_ttl: str = "7d"
 
