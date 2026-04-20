@@ -1,4 +1,3 @@
-import { runtimeConfig } from "@/lib/runtime";
 import type { TelegramBotSettings } from "@/types/domain";
 
 export const telegramImagePresets = [
@@ -32,10 +31,6 @@ const previewContext = {
   monthly_fee: "1 100 000 so'm"
 };
 
-function backendOrigin() {
-  return runtimeConfig.apiBaseUrl.replace(/\/api$/, "");
-}
-
 export function resolveTelegramMediaUrl(value?: string | null) {
   const normalized = String(value || "").trim();
   if (!normalized) {
@@ -43,7 +38,7 @@ export function resolveTelegramMediaUrl(value?: string | null) {
   }
 
   if (normalized.startsWith("builtin://")) {
-    return `${backendOrigin()}/telegram-assets/${normalized.replace("builtin://", "")}.png`;
+    return `/telegram-assets/${normalized.replace("builtin://", "")}.png`;
   }
 
   return normalized;
