@@ -240,13 +240,36 @@ def _normalize_bot_username(value: str | None) -> str | None:
     return normalized or None
 
 
+def _environment_bot_username() -> str | None:
+    return _normalize_bot_username(get_settings().telegram_bot_username)
+
+
+def _environment_bot_token() -> str | None:
+    normalized = str(get_settings().telegram_bot_token or "").strip()
+    return normalized or None
+
+
+def _has_bot_token(settings: TelegramBotSettings) -> bool:
+    return bool(_environment_bot_token() or settings.bot_token_cipher)
+
+
+def _bot_token_for_settings(settings: TelegramBotSettings) -> str:
+    env_token = _environment_bot_token()
+    if env_token:
+        return env_token
+
+    if not settings.bot_token_cipher:
+        raise ValueError("Telegram bot hali sozlanmagan.")
+
+    return decrypt_secret(settings.bot_token_cipher)
+
+
 def _apply_environment_telegram_defaults(settings: TelegramBotSettings) -> bool:
-    app_settings = get_settings()
-    bot_username = _normalize_bot_username(app_settings.telegram_bot_username)
-    bot_token = str(app_settings.telegram_bot_token or "").strip()
+    bot_username = _environment_bot_username()
+    bot_token = _environment_bot_token()
     changed = False
 
-    if bot_username and not settings.bot_username:
+    if bot_username and settings.bot_username != bot_username:
         settings.bot_username = bot_username
         changed = True
 
@@ -287,8 +310,8 @@ def telegram_settings_payload(db: Session) -> dict[str, object]:
     settings = get_or_create_telegram_settings(db)
     return {
         "enabled": settings.enabled,
-        "botUsername": settings.bot_username,
-        "hasBotToken": bool(settings.bot_token_cipher),
+        "botUsername": settings.bot_username or _environment_bot_username(),
+        "hasBotToken": _has_bot_token(settings),
         "welcomeText": _resolved_text(settings.welcome_text, default=DEFAULT_WELCOME_TEXT, legacy_values=(LEGACY_WELCOME_TEXT, PREVIOUS_DEFAULT_WELCOME_TEXT)),
         "welcomeImageUrl": _resolved_image(settings.welcome_image_url, default=DEFAULT_WELCOME_IMAGE),
         "notificationImageUrl": _resolved_image(settings.notification_image_url, default=DEFAULT_NOTIFICATION_IMAGE),
@@ -320,10 +343,11 @@ def update_telegram_settings(db: Session, payload: dict[str, object]) -> dict[st
 
 
 def build_parent_connect_url(bot_username: str | None, student_id: str) -> str | None:
-    if not bot_username:
+    resolved_bot_username = _normalize_bot_username(bot_username) or _environment_bot_username()
+    if not resolved_bot_username:
         return None
 
-    return f"https://t.me/{bot_username.removeprefix('@')}?start=parent_{student_id}"
+    return f"https://t.me/{resolved_bot_username}?start=parent_{student_id}"
 
 
 def render_template_message(
@@ -1070,12 +1094,12 @@ def send_student_notification(
 ) -> Notification:
     settings = get_or_create_telegram_settings(db)
 
-    if not settings.enabled or not settings.bot_token_cipher:
+    if not settings.enabled or not _has_bot_token(settings):
         raise ValueError("Telegram bot hali sozlanmagan.")
     if not student.parent_telegram_chat_id:
         raise ValueError("Ota-ona hali Telegram botga ulanmagan.")
 
-    token = decrypt_secret(settings.bot_token_cipher)
+    token = _bot_token_for_settings(settings)
     if custom_text:
         text = custom_text
     elif "to'lov" in template_name.lower():
@@ -1116,10 +1140,10 @@ def send_student_notification(
 
 def send_welcome_message(db: Session, student: Student) -> None:
     settings = get_or_create_telegram_settings(db)
-    if not settings.enabled or not settings.bot_token_cipher or not student.parent_telegram_chat_id:
+    if not settings.enabled or not _has_bot_token(settings) or not student.parent_telegram_chat_id:
         return
 
-    token = decrypt_secret(settings.bot_token_cipher)
+    token = _bot_token_for_settings(settings)
     text = render_template_message(
         _resolved_text(settings.welcome_text, default=DEFAULT_WELCOME_TEXT, legacy_values=(LEGACY_WELCOME_TEXT,)),
         student,
@@ -1139,10 +1163,10 @@ def send_welcome_message(db: Session, student: Student) -> None:
 
 def send_welcome_message(db: Session, student: Student) -> None:
     settings = get_or_create_telegram_settings(db)
-    if not settings.enabled or not settings.bot_token_cipher or not student.parent_telegram_chat_id:
+    if not settings.enabled or not _has_bot_token(settings) or not student.parent_telegram_chat_id:
         return
 
-    token = decrypt_secret(settings.bot_token_cipher)
+    token = _bot_token_for_settings(settings)
     text = render_template_message(
         _resolved_text(settings.welcome_text, default=DEFAULT_WELCOME_TEXT, legacy_values=(LEGACY_WELCOME_TEXT, PREVIOUS_DEFAULT_WELCOME_TEXT)),
         student,
@@ -1162,10 +1186,10 @@ def send_welcome_message(db: Session, student: Student) -> None:
 
 def sync_telegram_updates(db: Session, *, timeout_seconds: int = 0) -> dict[str, int]:
     settings = get_or_create_telegram_settings(db)
-    if not settings.enabled or not settings.bot_token_cipher:
+    if not settings.enabled or not _has_bot_token(settings):
         raise ValueError("Telegram bot hali sozlanmagan.")
 
-    token = decrypt_secret(settings.bot_token_cipher)
+    token = _bot_token_for_settings(settings)
     payload: dict[str, object] = {"timeout": timeout_seconds, "allowed_updates": ["message", "callback_query"]}
     if settings.last_update_id:
         payload["offset"] = settings.last_update_id
@@ -1344,5 +1368,5 @@ async def telegram_polling_loop() -> None:
 def _sync_telegram_updates_in_thread() -> None:
     with SessionLocal() as db:
         settings = get_or_create_telegram_settings(db)
-        if settings.enabled and settings.bot_token_cipher:
+        if settings.enabled and _has_bot_token(settings):
             sync_telegram_updates(db, timeout_seconds=TELEGRAM_POLL_TIMEOUT_SECONDS)
