@@ -22,6 +22,32 @@ import { runtimeConfig } from "@/lib/runtime";
 import { apiRequest } from "@/services/api-client";
 
 const wait = (ms = 240) => new Promise((resolve) => setTimeout(resolve, ms));
+const MOCK_STORAGE_PREFIX = "kurs-boshqaruv-mock:";
+
+function readMockState<T>(key: string): T | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(`${MOCK_STORAGE_PREFIX}${key}`);
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeMockState<T>(key: string, value: T) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(`${MOCK_STORAGE_PREFIX}${key}`, JSON.stringify(value));
+  } catch {
+    // Ignore storage quota/privacy errors; mock mode can still run in memory.
+  }
+}
 
 const TODAY = getTodayIso();
 
@@ -559,6 +585,44 @@ const demoUsers: Array<SessionUser & { password?: string }> = [
   }
 ];
 
+function replaceArrayContents<T>(target: T[], next: T[] | null) {
+  if (next?.length) {
+    target.splice(0, target.length, ...next);
+  }
+}
+
+function persistMockState() {
+  writeMockState("courseCatalog", courseCatalog);
+  writeMockState("students", studentsBase);
+  writeMockState("teachers", teachersBase);
+  writeMockState("groups", groupsBase);
+  writeMockState("payments", paymentRecords);
+  writeMockState("notifications", notifications);
+  writeMockState("telegramSettings", telegramSettings);
+  writeMockState("demoUsers", demoUsers);
+}
+
+function hydrateMockState() {
+  const savedCourseCatalog = readMockState<Record<string, number>>("courseCatalog");
+  if (savedCourseCatalog) {
+    Object.assign(courseCatalog, savedCourseCatalog);
+  }
+
+  replaceArrayContents(studentsBase, readMockState<typeof studentsBase>("students"));
+  replaceArrayContents(teachersBase, readMockState<typeof teachersBase>("teachers"));
+  replaceArrayContents(groupsBase, readMockState<typeof groupsBase>("groups"));
+  replaceArrayContents(paymentRecords, readMockState<typeof paymentRecords>("payments"));
+  replaceArrayContents(notifications, readMockState<typeof notifications>("notifications"));
+  replaceArrayContents(demoUsers, readMockState<typeof demoUsers>("demoUsers"));
+
+  const savedTelegramSettings = readMockState<TelegramBotSettings>("telegramSettings");
+  if (savedTelegramSettings) {
+    telegramSettings = { ...telegramSettings, ...savedTelegramSettings };
+  }
+}
+
+hydrateMockState();
+
 function formatMoney(amount: number) {
   return `${new Intl.NumberFormat("uz-UZ").format(amount)} so'm`;
 }
@@ -749,6 +813,7 @@ function appendNotification(studentName: string, template: string) {
     },
     ...notifications
   ];
+  persistMockState();
 }
 
 function appendSystemMessage(studentId: string, title: string, body: string) {
@@ -1164,6 +1229,7 @@ export const mockApi = {
       hasBotToken: telegramSettings.hasBotToken || Boolean(payload.botToken),
       botUsername: payload.botUsername !== undefined ? payload.botUsername.trim().replace(/^@/, "") : telegramSettings.botUsername
     };
+    persistMockState();
     return telegramSettings;
   },
 
@@ -1217,6 +1283,7 @@ export const mockApi = {
       email: normalizedEmail,
       password: payload.password
     });
+    persistMockState();
 
     return {
       success: true,
@@ -1275,6 +1342,7 @@ export const mockApi = {
       email: normalizedEmail,
       password: payload.password
     });
+    persistMockState();
 
     return {
       success: true,
@@ -1337,6 +1405,7 @@ export const mockApi = {
     };
 
     groupsBase.unshift(nextGroup);
+    persistMockState();
 
     return {
       success: true,
@@ -1370,6 +1439,7 @@ export const mockApi = {
     }
 
     courseCatalog[title] = payload.price;
+    persistMockState();
 
     return {
       success: true,
@@ -1418,6 +1488,7 @@ export const mockApi = {
         `Siz ${group.name} guruhiga biriktirildingiz. Darslar ${group.schedule} jadvali asosida o'tadi.`
       );
     }
+    persistMockState();
 
     return {
       success: true,
@@ -1471,6 +1542,7 @@ export const mockApi = {
         `Siz ${previousGroup} guruhidan chiqarildingiz. Yangi guruh biriktirilgach bu yerda xabar ko'rinadi.`
       );
     }
+    persistMockState();
 
     return {
       success: true,
@@ -1874,6 +1946,7 @@ export const mockApi = {
       appendNotification(student.fullName, "To'lov - Qilinmagan");
       notificationSent = true;
     }
+    persistMockState();
 
     const paymentEntry = toPaymentEntry(nextRecord);
     const receipt: PaymentReceipt = {
