@@ -576,12 +576,16 @@ export function AdminStudentsPage() {
     onSuccess: async (response) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["students"] }),
+        queryClient.invalidateQueries({ queryKey: ["student-detail"] }),
         queryClient.invalidateQueries({ queryKey: ["dashboard", "admin"] }),
         queryClient.invalidateQueries({ queryKey: ["dashboard", "teacher"] })
       ]);
+      await queryClient.refetchQueries({ queryKey: ["students"], type: "active" });
 
       setIsStudentModalOpen(false);
       setCreatedStudentAccount(response);
+      setSearch("");
+      setFilter("all");
       setStudentFullName("");
       setStudentPhone("");
       setStudentEmail("");
@@ -2649,7 +2653,13 @@ export function AdminSettingsPage() {
   const settingsMutation = useMutation({
     mutationFn: mockApi.updateTelegramSettings,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["telegram-settings"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["telegram-settings"] }),
+        queryClient.invalidateQueries({ queryKey: ["students"] }),
+        queryClient.invalidateQueries({ queryKey: ["student-detail"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] })
+      ]);
+      await queryClient.refetchQueries({ queryKey: ["students"], type: "active" });
       toast.success("Telegram bot sozlamalari saqlandi.");
       setBotToken("");
     },

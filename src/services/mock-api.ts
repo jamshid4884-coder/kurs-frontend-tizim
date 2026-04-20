@@ -523,6 +523,15 @@ let telegramSettings: TelegramBotSettings = {
   lastUpdateId: 0
 };
 
+function normalizedBotUsername() {
+  return String(telegramSettings.botUsername || "").trim().replace(/^@/, "");
+}
+
+function buildParentConnectUrl(studentId: string) {
+  const botUsername = normalizedBotUsername();
+  return botUsername ? `https://t.me/${botUsername}?start=parent_${studentId}` : null;
+}
+
 const demoUsers: Array<SessionUser & { password?: string }> = [
   {
     id: demoDirectory.admin.id,
@@ -624,6 +633,7 @@ function getStudentSummaries(): StudentSummary[] {
       parentName: student.parentName,
       parentPhone: student.parentPhone,
       parentTelegramStatus: student.parentTelegramStatus,
+      parentTelegramConnectUrl: buildParentConnectUrl(student.id),
       group: student.group,
       course: student.course,
       attendancePercent: getStudentAttendancePercent(student.fullName),
@@ -1026,6 +1036,8 @@ export const mockApi = {
       parentName: selected.parentName,
       parentPhone: selected.parentPhone,
       parentTelegramStatus: selected.parentTelegramStatus,
+      parentTelegramHandle: selected.parentTelegramHandle,
+      parentTelegramConnectUrl: buildParentConnectUrl(selected.id),
       monthlyFee: formatMoney(selected.monthlyFee),
       group: selected.group,
       course: selected.course,
@@ -1150,7 +1162,7 @@ export const mockApi = {
       ...telegramSettings,
       ...payload,
       hasBotToken: telegramSettings.hasBotToken || Boolean(payload.botToken),
-      botUsername: payload.botUsername ?? telegramSettings.botUsername
+      botUsername: payload.botUsername !== undefined ? payload.botUsername.trim().replace(/^@/, "") : telegramSettings.botUsername
     };
     return telegramSettings;
   },
