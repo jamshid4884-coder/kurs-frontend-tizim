@@ -672,6 +672,7 @@ export function StudentProfilePage() {
                 value={avatarPreview}
                 name={fullName}
                 disabled={avatarMutation.isPending}
+                loading={avatarMutation.isPending}
                 onSelect={(file) => {
                   const preview = URL.createObjectURL(file);
                   setAvatarPreview(preview);
@@ -722,6 +723,7 @@ export function StudentProfilePage() {
                     })
                   }
                   disabled={profileMutation.isPending}
+                  loading={profileMutation.isPending}
                 >
                   {profileMutation.isPending ? "Saqlanmoqda..." : "Profilni saqlash"}
                 </Button>
@@ -749,6 +751,7 @@ export function StudentProfilePage() {
               className="mt-4"
               variant="secondary"
               disabled={!currentPassword || !newPassword || passwordMutation.isPending}
+              loading={passwordMutation.isPending}
               onClick={() => passwordMutation.mutate({ current: currentPassword, next: newPassword })}
             >
               {passwordMutation.isPending ? "Yangilanmoqda..." : "Parolni yangilash"}

@@ -796,6 +796,7 @@ export function AdminStudentsPage() {
             <Button
               className="w-full sm:w-auto"
               disabled={!canCreateStudent || createStudentMutation.isPending}
+              loading={createStudentMutation.isPending}
               onClick={() =>
                 createStudentMutation.mutate({
                   fullName: studentFullName,
@@ -949,13 +950,13 @@ export function AdminStudentDetailPage() {
                 Login ma'lumoti
               </Button>
             ) : null}
-            <Button variant="secondary" disabled={!canSendTelegram || quickNotifyMutation.isPending} onClick={() => quickNotifyMutation.mutate("Davomat - Kelmadi")}>
+            <Button variant="secondary" disabled={!canSendTelegram || quickNotifyMutation.isPending} loading={quickNotifyMutation.isPending} onClick={() => quickNotifyMutation.mutate("Davomat - Kelmadi")}>
               Kelmagan
             </Button>
-            <Button variant="secondary" disabled={!canSendTelegram || quickNotifyMutation.isPending} onClick={() => quickNotifyMutation.mutate("Uy vazifasi - Bajarilmagan")}>
+            <Button variant="secondary" disabled={!canSendTelegram || quickNotifyMutation.isPending} loading={quickNotifyMutation.isPending} onClick={() => quickNotifyMutation.mutate("Uy vazifasi - Bajarilmagan")}>
               Uy vazifasi
             </Button>
-            <Button variant="secondary" disabled={!canSendTelegram || quickNotifyMutation.isPending} onClick={() => quickNotifyMutation.mutate("To'lov - Qilinmagan")}>
+            <Button variant="secondary" disabled={!canSendTelegram || quickNotifyMutation.isPending} loading={quickNotifyMutation.isPending} onClick={() => quickNotifyMutation.mutate("To'lov - Qilinmagan")}>
               To'lov
             </Button>
             <Button disabled={!canSendTelegram} onClick={() => setNotificationOpen(true)}>
@@ -1216,6 +1217,7 @@ export function AdminTeachersPage() {
             <Button
               className="w-full sm:w-auto"
               disabled={!canCreateTeacher || createTeacherMutation.isPending}
+              loading={createTeacherMutation.isPending}
               onClick={() =>
                 createTeacherMutation.mutate({
                   fullName: teacherFullName,
@@ -1658,6 +1660,7 @@ export function AdminGroupsPage() {
             <Button
               className="w-full sm:w-auto"
               disabled={!canCreateGroup || createGroupMutation.isPending}
+              loading={createGroupMutation.isPending}
               onClick={() =>
                 createGroupMutation.mutate({
                   name: newGroupName,
@@ -1803,6 +1806,7 @@ export function AdminGroupsPage() {
                         variant="secondary"
                         size="sm"
                         disabled={assignStudentMutation.isPending}
+                        loading={assignStudentMutation.isPending}
                         onClick={() => requestAssignToSelectedGroup(student.id)}
                       >
                         <UserPlus size={15} />
@@ -1904,6 +1908,7 @@ export function AdminGroupsPage() {
                             variant="secondary"
                             size="sm"
                             disabled={unassignStudentMutation.isPending}
+                            loading={unassignStudentMutation.isPending}
                             onClick={() => requestRemoveFromSelectedGroup(student.id)}
                           >
                             <UserMinus size={15} />
@@ -2074,6 +2079,7 @@ export function AdminCoursesPage() {
             <Button
               className="w-full sm:w-auto"
               disabled={!canCreateCourse || createCourseMutation.isPending}
+              loading={createCourseMutation.isPending}
               onClick={() =>
                 createCourseMutation.mutate({
                   title: courseTitle,
@@ -2386,6 +2392,7 @@ export function AdminPaymentsPage() {
           <Button
             className="w-full sm:w-auto"
             disabled={!selectedStudentId || receivedAmountValue <= 0 || paymentMutation.isPending || isCurrentMonthPaid || isOverpaying}
+            loading={paymentMutation.isPending}
             onClick={() =>
               paymentMutation.mutate({
                 studentId: selectedStudentId,
@@ -2766,7 +2773,7 @@ export function AdminSettingsPage() {
               <Button variant={enabled ? "success" : "secondary"} onClick={() => setEnabled((value) => !value)}>
                 {enabled ? "Bot yoqilgan" : "Bot o'chirilgan"}
               </Button>
-              <Button variant="secondary" onClick={() => syncMutation.mutate()} disabled={syncMutation.isPending}>
+              <Button variant="secondary" onClick={() => syncMutation.mutate()} disabled={syncMutation.isPending} loading={syncMutation.isPending}>
                 {syncMutation.isPending ? "Sinxronlash..." : "Ota-onani sinxronlash"}
               </Button>
               <div className="text-sm text-slate-500">
@@ -2815,6 +2822,7 @@ export function AdminSettingsPage() {
                 })
               }
               disabled={settingsMutation.isPending}
+              loading={settingsMutation.isPending}
             >
               {settingsMutation.isPending ? "Saqlanmoqda..." : "Telegram sozlamalarini saqlash"}
             </Button>

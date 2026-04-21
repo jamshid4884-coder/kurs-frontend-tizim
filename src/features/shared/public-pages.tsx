@@ -611,7 +611,7 @@ export function LoginPage() {
                 <input type="checkbox" className="h-4 w-4 rounded border-border text-primary focus:ring-primary" {...register("rememberMe")} />
                 Meni eslab qolish
               </label>
-              <Button className="w-full" size="lg" disabled={isSubmitting}>
+              <Button className="w-full" size="lg" disabled={isSubmitting} loading={isSubmitting}>
                 {isSubmitting ? "Tekshirilmoqda..." : "Kirish"}
               </Button>
             </form>
@@ -715,7 +715,7 @@ export function RegisterPage() {
                 error={errors.confirmPassword?.message}
                 {...register("confirmPassword")}
               />
-              <Button className="w-full" size="lg" disabled={isSubmitting}>
+              <Button className="w-full" size="lg" disabled={isSubmitting} loading={isSubmitting}>
                 {isSubmitting ? "Yuborilmoqda..." : "So'rov yuborish"}
               </Button>
             </form>
@@ -767,8 +767,8 @@ export function ForgotPasswordPage() {
               })}
             >
               <FormInput label="Telefon raqami yoki email" error={errors.identifier?.message} {...register("identifier")} />
-              <Button className="w-full" size="lg" disabled={isSubmitting}>
-                Tiklash tokenini yaratish
+              <Button className="w-full" size="lg" disabled={isSubmitting} loading={isSubmitting}>
+                {isSubmitting ? "Yaratilmoqda..." : "Tiklash tokenini yaratish"}
               </Button>
             </form>
             {token ? <p className="surface-muted px-4 py-3 text-sm text-slate-500">Namuna token: {token}</p> : null}
@@ -832,8 +832,8 @@ export function ResetPasswordPage() {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-              <Button className="w-full" size="lg" disabled={isSubmitting}>
-                Parolni yangilash
+              <Button className="w-full" size="lg" disabled={isSubmitting} loading={isSubmitting}>
+                {isSubmitting ? "Yangilanmoqda..." : "Parolni yangilash"}
               </Button>
             </form>
           </Card>

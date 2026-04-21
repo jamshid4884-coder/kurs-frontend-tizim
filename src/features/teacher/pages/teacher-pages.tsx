@@ -838,6 +838,7 @@ export function TeacherAttendancePage() {
                 variant={isLocked ? "secondary" : "success"}
                 onClick={saveAttendance}
                 disabled={!selectedGroupId || isLocked || attendanceMutation.isPending || !selectedGroupStudents.length}
+                loading={attendanceMutation.isPending}
               >
                 <CheckCheck size={16} className="mr-2" />
                 {attendanceMutation.isPending ? "Saqlanmoqda..." : isLocked ? "Saqlangan" : "Saqlash"}
@@ -1294,6 +1295,7 @@ export function TeacherAttendancePage() {
                       variant={pendingHomeworkEntries.length ? "primary" : "secondary"}
                       onClick={saveHomeworkScores}
                       disabled={!pendingHomeworkEntries.length || homeworkMutation.isPending}
+                      loading={homeworkMutation.isPending}
                       className="lg:min-w-[240px]"
                     >
                       <CheckCheck size={16} />
@@ -1311,6 +1313,7 @@ export function TeacherAttendancePage() {
                       variant={pendingDailyGradeEntries.length ? "primary" : "secondary"}
                       onClick={saveDailyGrades}
                       disabled={!pendingDailyGradeEntries.length || dailyGradeMutation.isPending}
+                      loading={dailyGradeMutation.isPending}
                       className="lg:min-w-[240px]"
                     >
                       <CheckCheck size={16} />
@@ -1712,6 +1715,7 @@ export function TeacherProfilePage() {
                 value={avatarPreview}
                 name={fullName}
                 disabled={avatarMutation.isPending}
+                loading={avatarMutation.isPending}
                 onSelect={(file) => {
                   setAvatarPreview(URL.createObjectURL(file));
                   avatarMutation.mutate(file);
@@ -1745,6 +1749,7 @@ export function TeacherProfilePage() {
                   })
                 }
                 disabled={profileMutation.isPending}
+                loading={profileMutation.isPending}
               >
                 {profileMutation.isPending ? "Saqlanmoqda..." : "Profilni saqlash"}
               </Button>
@@ -1766,6 +1771,7 @@ export function TeacherProfilePage() {
               className="mt-4"
               variant="secondary"
               disabled={!currentPassword || !newPassword || passwordMutation.isPending}
+              loading={passwordMutation.isPending}
               onClick={() => passwordMutation.mutate({ current: currentPassword, next: newPassword })}
             >
               {passwordMutation.isPending ? "Yangilanmoqda..." : "Parolni yangilash"}

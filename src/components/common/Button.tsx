@@ -34,12 +34,91 @@ const buttonVariants = cva(
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {}
+    VariantProps<typeof buttonVariants> {
+  loading?: boolean;
+  loadingText?: React.ReactNode;
+  lockOnClick?: boolean;
+}
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, ...props }, ref) => (
-    <button ref={ref} className={cn(buttonVariants({ variant, size }), className)} {...props} />
-  )
+  (
+    {
+      children,
+      className,
+      disabled,
+      loading = false,
+      loadingText,
+      lockOnClick = true,
+      onClick,
+      variant,
+      size,
+      ...props
+    },
+    ref
+  ) => {
+    const [asyncPending, setAsyncPending] = React.useState(false);
+    const [clickLocked, setClickLocked] = React.useState(false);
+    const lockTimerRef = React.useRef<number | null>(null);
+    const isBusy = loading || asyncPending;
+    const isDisabled = disabled || isBusy || clickLocked;
+
+    React.useEffect(
+      () => () => {
+        if (lockTimerRef.current) {
+          window.clearTimeout(lockTimerRef.current);
+        }
+      },
+      []
+    );
+
+    const handleClick: React.MouseEventHandler<HTMLButtonElement> = (event) => {
+      if (isDisabled) {
+        event.preventDefault();
+        return;
+      }
+
+      const result = onClick?.(event) as Promise<unknown> | void;
+
+      if (!lockOnClick || event.defaultPrevented) {
+        return;
+      }
+
+      if (result && typeof result.then === "function") {
+        setAsyncPending(true);
+        void result.finally(() => setAsyncPending(false)).catch(() => undefined);
+        return;
+      }
+
+      setClickLocked(true);
+      if (lockTimerRef.current) {
+        window.clearTimeout(lockTimerRef.current);
+      }
+      lockTimerRef.current = window.setTimeout(() => {
+        setClickLocked(false);
+        lockTimerRef.current = null;
+      }, 650);
+    };
+
+    return (
+      <button
+        ref={ref}
+        className={cn(buttonVariants({ variant, size }), isBusy && "relative overflow-hidden", className)}
+        disabled={isDisabled}
+        aria-busy={isBusy}
+        data-loading={isBusy ? "true" : undefined}
+        onClick={handleClick}
+        {...props}
+      >
+        {isBusy ? (
+          <span
+            aria-hidden="true"
+            className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent"
+          />
+        ) : null}
+        <span>{isBusy && loadingText ? loadingText : children}</span>
+      </button>
+    );
+  }
 );
 
 Button.displayName = "Button";

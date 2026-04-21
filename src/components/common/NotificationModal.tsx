@@ -178,6 +178,7 @@ export function NotificationModal({ open, studentId, studentName, onClose }: Not
           </Button>
           <Button
             disabled={!telegramSettings?.enabled || sendMutation.isPending}
+            loading={sendMutation.isPending}
             className="w-full sm:w-auto"
             onClick={() => sendMutation.mutate(template)}
           >
