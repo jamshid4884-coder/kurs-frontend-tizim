@@ -20,9 +20,17 @@ def _cors_origins() -> list[str]:
         for origin in settings.cors_origin.split(",")
         if origin.strip()
     ]
-    local_origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
+    default_frontend_origins = [
+        "https://kurs-frontend-tizim.vercel.app",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ]
 
-    return list(dict.fromkeys([*configured, *local_origins]))
+    return list(dict.fromkeys([*configured, *default_frontend_origins]))
+
+
+def _cors_origin_regex() -> str:
+    return r"https://.*\.vercel\.app"
 
 
 @asynccontextmanager
@@ -42,6 +50,7 @@ app = FastAPI(title=settings.app_name, lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins(),
+    allow_origin_regex=_cors_origin_regex(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
