@@ -586,7 +586,10 @@ export function LoginPage() {
               className="space-y-4"
               onSubmit={handleSubmit(async (values) => {
                 try {
-                  const response = await authService.login(values);
+                  const response = await authService.login({
+                    identifier: values.identifier.trim(),
+                    password: values.password.trim()
+                  });
                   signIn(response);
                   toast.success("Tizimga muvaffaqiyatli kirdingiz.");
                   navigate(`/${response.user.role.toLowerCase()}/dashboard`);

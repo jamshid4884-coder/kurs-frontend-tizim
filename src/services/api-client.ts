@@ -11,7 +11,7 @@ class ApiError extends Error {
   }
 }
 
-const DEFAULT_REQUEST_TIMEOUT_MS = 15000;
+const DEFAULT_REQUEST_TIMEOUT_MS = 90000;
 
 function toFriendlyMessage(message: string) {
   const normalized = message.toLowerCase();
@@ -21,7 +21,7 @@ function toFriendlyMessage(message: string) {
     normalized.includes("aborted") ||
     normalized.includes("the user aborted a request")
   ) {
-    return "Server 15 soniyada javob bermadi. Internet yoki backend holatini tekshirib qayta urinib ko'ring.";
+    return "Server vaqtida javob bermadi. Render backend uyg'onayotgan bo'lishi mumkin, bir ozdan keyin qayta urinib ko'ring.";
   }
 
   if (
