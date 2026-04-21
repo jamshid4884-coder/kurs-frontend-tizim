@@ -1600,10 +1600,11 @@ export const mockApi = {
       );
 
       if (existingEntry) {
+        const previousStatus = existingEntry.status;
         existingEntry.lessonTopic = cleanedLessonTopic;
         existingEntry.status = entry.status;
         existingEntry.comment = cleanedComment;
-        existingEntry.homeworkScore = entry.status === "absent" ? 0 : existingEntry.homeworkScore === 0 ? null : existingEntry.homeworkScore;
+        existingEntry.homeworkScore = entry.status === "absent" ? 0 : previousStatus === "absent" && existingEntry.homeworkScore === 0 ? null : existingEntry.homeworkScore;
         existingEntry.homeworkComment = entry.status === "absent" ? undefined : existingEntry.homeworkComment;
         existingEntry.dailyGrade = entry.status === "absent" ? null : existingEntry.dailyGrade;
         existingEntry.dailyGradeComment = entry.status === "absent" ? undefined : existingEntry.dailyGradeComment;
