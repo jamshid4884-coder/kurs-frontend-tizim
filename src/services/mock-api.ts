@@ -1578,10 +1578,8 @@ export const mockApi = {
       throw new Error("Guruh topilmadi.");
     }
 
-    const alreadyTaken = attendance.some((item) => item.group === group.name && item.date === payload.date);
-
-    if (alreadyTaken) {
-      throw new Error("Bu guruh uchun shu kunda davomat allaqachon olingan. Uni qayta o'zgartirib bo'lmaydi.");
+    if (payload.date !== TODAY) {
+      throw new Error("Davomatni faqat o'sha kuni tahrirlash mumkin.");
     }
 
     const students = studentsBase.filter((item) => item.group === group.name);
@@ -1597,17 +1595,30 @@ export const mockApi = {
       }
 
       const cleanedComment = entry.comment?.trim() || getDefaultAttendanceComment(entry.status);
+      const existingEntry = attendance.find(
+        (item) => item.studentName === student.fullName && item.group === group.name && item.date === payload.date
+      );
 
-      attendance.unshift({
-        id: crypto.randomUUID(),
-        date: payload.date,
-        studentName: student.fullName,
-        group: group.name,
-        lessonTopic: cleanedLessonTopic,
-        status: entry.status,
-        comment: cleanedComment,
-        homeworkScore: entry.status === "absent" ? 0 : null
-      });
+      if (existingEntry) {
+        existingEntry.lessonTopic = cleanedLessonTopic;
+        existingEntry.status = entry.status;
+        existingEntry.comment = cleanedComment;
+        existingEntry.homeworkScore = entry.status === "absent" ? 0 : existingEntry.homeworkScore === 0 ? null : existingEntry.homeworkScore;
+        existingEntry.homeworkComment = entry.status === "absent" ? undefined : existingEntry.homeworkComment;
+        existingEntry.dailyGrade = entry.status === "absent" ? null : existingEntry.dailyGrade;
+        existingEntry.dailyGradeComment = entry.status === "absent" ? undefined : existingEntry.dailyGradeComment;
+      } else {
+        attendance.unshift({
+          id: crypto.randomUUID(),
+          date: payload.date,
+          studentName: student.fullName,
+          group: group.name,
+          lessonTopic: cleanedLessonTopic,
+          status: entry.status,
+          comment: cleanedComment,
+          homeworkScore: entry.status === "absent" ? 0 : null
+        });
+      }
 
       const noteTag = getAttendanceNoteTag(entry.status);
 
@@ -1665,6 +1676,10 @@ export const mockApi = {
       throw new Error("Guruh topilmadi.");
     }
 
+    if (payload.date !== TODAY) {
+      throw new Error("Dars mavzusini faqat o'sha kuni tahrirlash mumkin.");
+    }
+
     const cleanedLessonTopic = payload.lessonTopic.trim();
 
     if (!cleanedLessonTopic) {
@@ -1709,6 +1724,10 @@ export const mockApi = {
 
     if (!group) {
       throw new Error("Guruh topilmadi.");
+    }
+
+    if (payload.date !== TODAY) {
+      throw new Error("Uy vazifasi bahosini faqat o'sha kuni kiritish mumkin.");
     }
 
     if (!payload.entries.length) {
@@ -1766,6 +1785,10 @@ export const mockApi = {
 
     if (!group) {
       throw new Error("Guruh topilmadi.");
+    }
+
+    if (payload.date !== TODAY) {
+      throw new Error("Kunlik bahoni faqat o'sha kuni kiritish mumkin.");
     }
 
     if (!payload.entries.length) {

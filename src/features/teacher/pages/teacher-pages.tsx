@@ -522,6 +522,7 @@ export function TeacherAttendancePage() {
     [rows, selectedDate, selectedGroup?.name]
   );
   const isLocked = lockedRows.length > 0;
+  const canEditSelectedDate = selectedDate === TODAY;
   const selectedGroupRows = useMemo(
     () => rows.filter((item) => item.group === selectedGroup?.name),
     [rows, selectedGroup?.name]
@@ -676,7 +677,7 @@ export function TeacherAttendancePage() {
   }
 
   function updateLessonAttendance(studentId: string, attendance: "present" | "absent") {
-    if (isLocked) {
+    if (!canEditSelectedDate) {
       return;
     }
 
@@ -722,7 +723,7 @@ export function TeacherAttendancePage() {
   }
 
   function saveAttendance() {
-    if (!selectedGroupId || isLocked || attendanceMutation.isPending || !selectedGroupStudents.length) {
+    if (!selectedGroupId || !canEditSelectedDate || attendanceMutation.isPending || !selectedGroupStudents.length) {
       return;
     }
 
@@ -837,11 +838,11 @@ export function TeacherAttendancePage() {
               <Button
                 variant={isLocked ? "secondary" : "success"}
                 onClick={saveAttendance}
-                disabled={!selectedGroupId || isLocked || attendanceMutation.isPending || !selectedGroupStudents.length}
+                disabled={!selectedGroupId || !canEditSelectedDate || attendanceMutation.isPending || !selectedGroupStudents.length}
                 loading={attendanceMutation.isPending}
               >
                 <CheckCheck size={16} className="mr-2" />
-                {attendanceMutation.isPending ? "Saqlanmoqda..." : isLocked ? "Saqlangan" : "Saqlash"}
+                {attendanceMutation.isPending ? "Saqlanmoqda..." : isLocked ? "Tahrirni saqlash" : "Saqlash"}
               </Button>
             </div>
           ) : (
@@ -987,7 +988,7 @@ export function TeacherAttendancePage() {
                                     ? getMatrixAttendanceValue(savedRow.status)
                                     : null;
                               const isAbsentLesson = attendanceValue === "absent";
-                              const canEditAttendance = isActiveLesson && !isAttendanceLocked;
+                              const canEditAttendance = isActiveLesson && canEditSelectedDate && !attendanceMutation.isPending;
                               const canEditHomework = isActiveLesson && isAttendanceLocked && !isHomeworkLocked && !isAbsentLesson;
                               const canEditDailyGrade = isActiveLesson && isAttendanceLocked && !isDailyGradeLocked && !isAbsentLesson;
                               const homeworkScore = isActiveLesson
@@ -1026,7 +1027,7 @@ export function TeacherAttendancePage() {
                                 </div>
                                 <div className="lesson-journal__split">
                                   <div className="lesson-journal__split-block">
-                                    {isAttendanceLocked ? (
+                                    {!canEditAttendance && isAttendanceLocked ? (
                                       <div
                                         className={`lesson-journal__state-display ${
                                           attendanceValue === "absent"
@@ -1072,7 +1073,9 @@ export function TeacherAttendancePage() {
                                       </div>
                                     )}
                                     {isActiveLesson && isAttendanceLocked ? (
-                                      <div className="lesson-journal__hint">Saqlangan.</div>
+                                      <div className="lesson-journal__hint">
+                                        {canEditSelectedDate ? "Bugungi davomatni tahrirlash mumkin." : "Bu sana yopilgan."}
+                                      </div>
                                     ) : null}
                                   </div>
                                   <div className="lesson-journal__split-divider" />
@@ -1249,7 +1252,7 @@ export function TeacherAttendancePage() {
                                     {isActiveLesson ? (
                                       <button
                                         type="button"
-                                        disabled={isLocked}
+                                        disabled={!canEditSelectedDate}
                                         onClick={() => updateStudentDraft(student.id, { sendNotification: !draft.sendNotification })}
                                         className={`lesson-journal__notify ${
                                           draft.sendNotification
