@@ -12,7 +12,7 @@ from passlib.context import CryptContext
 from .config import get_settings
 
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__rounds=10)
 
 
 def _credential_fernet() -> Fernet:
@@ -28,6 +28,10 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
+
+
+def password_needs_update(hashed_password: str) -> bool:
+    return pwd_context.needs_update(hashed_password)
 
 
 def hash_token(token: str) -> str:

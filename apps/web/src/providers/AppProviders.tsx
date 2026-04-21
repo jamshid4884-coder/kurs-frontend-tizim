@@ -12,8 +12,9 @@ export function AppProviders({ children }: PropsWithChildren) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: runtimeConfig.useMockApi ? Infinity : 5000,
-            refetchOnWindowFocus: !runtimeConfig.useMockApi,
+            staleTime: runtimeConfig.useMockApi ? Infinity : 60000,
+            gcTime: runtimeConfig.useMockApi ? Infinity : 300000,
+            refetchOnWindowFocus: false,
             refetchOnReconnect: true,
             refetchInterval: false,
             refetchIntervalInBackground: false,

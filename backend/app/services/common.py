@@ -6,11 +6,11 @@ from decimal import Decimal
 from pathlib import Path
 from uuid import uuid4
 
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from ..core.config import BASE_DIR, get_settings
-from ..core.security import decrypt_secret, encrypt_secret, hash_password, hash_token, verify_password
+from ..core.security import decrypt_secret, encrypt_secret, hash_password, hash_token, password_needs_update, verify_password
 from ..models import (
     AccountCredential,
     Attendance,
@@ -217,8 +217,14 @@ def upsert_account_credential(db: Session, user: User, login_identifier: str, pa
 
 def get_user_by_identifier(db: Session, identifier: str) -> User | None:
     normalized = identifier.strip().lower()
-    users = db.scalars(select(User)).all()
-    return next((user for user in users if user.phone.lower() == normalized or (user.email or "").lower() == normalized), None)
+    return db.scalar(
+        select(User).where(
+            or_(
+                func.lower(User.phone) == normalized,
+                func.lower(User.email) == normalized,
+            )
+        )
+    )
 
 
 def authenticate_user(db: Session, identifier: str, password: str) -> User:
@@ -229,6 +235,9 @@ def authenticate_user(db: Session, identifier: str, password: str) -> User:
 
     if user.status != UserStatus.ACTIVE:
         raise ValueError("Account is not active")
+
+    if password_needs_update(user.password_hash):
+        user.password_hash = hash_password(password)
 
     return user
 
