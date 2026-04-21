@@ -6,8 +6,29 @@ function isPlaceholderApiUrl(value: string) {
   return /backend-url|your-backend|sizning-backend|example\.com/i.test(value);
 }
 
+function normalizeApiBaseUrl(value: string) {
+  const trimmed = value.replace(/\/+$/, "");
+
+  if (!trimmed) {
+    return "";
+  }
+
+  try {
+    const url = new URL(trimmed);
+
+    if (!url.pathname || url.pathname === "/") {
+      url.pathname = "/api";
+      return url.toString().replace(/\/+$/, "");
+    }
+  } catch {
+    return trimmed;
+  }
+
+  return trimmed;
+}
+
 const resolvedApiBaseUrl = rawApiBaseUrl && !isPlaceholderApiUrl(rawApiBaseUrl)
-  ? rawApiBaseUrl
+  ? normalizeApiBaseUrl(rawApiBaseUrl)
   : import.meta.env.PROD
     ? productionApiBaseUrl
     : "http://localhost:8000/api";
