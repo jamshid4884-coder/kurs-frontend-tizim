@@ -29,7 +29,7 @@ const previewUsers: Record<Role, SessionUser> = {
     fullName: "Admin Demo",
     role: "ADMIN",
     phone: "+998900000101",
-    email: "admin.demo@example.com"
+    email: "jamshidjalolov6767@gmail.com"
   },
   TEACHER: {
     id: "teacher-1",
