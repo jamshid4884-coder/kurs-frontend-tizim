@@ -472,6 +472,7 @@ export function TeacherAttendancePage() {
   const [selectedGroupId, setSelectedGroupId] = useState("");
   const selectedDate = TODAY;
   const [drafts, setDrafts] = useState<Record<string, AttendanceDraft>>({});
+  const [isEditingSavedLesson, setIsEditingSavedLesson] = useState(false);
   const [lessonTopicInput, setLessonTopicInput] = useState("");
   const [homeworkTitleInput, setHomeworkTitleInput] = useState("");
   const [homeworkDueDate, setHomeworkDueDate] = useState(TODAY);
@@ -528,18 +529,23 @@ export function TeacherAttendancePage() {
     [rows, selectedGroup?.name]
   );
   const selectedDateLabel = useMemo(() => formatAttendanceLongDate(selectedDate), [selectedDate]);
+  const selectedMonth = selectedDate.slice(0, 7);
   const lessonDatesForGroup = useMemo(() => {
-    const uniqueDates = Array.from(new Set([...selectedGroupRows.map((item) => item.date), selectedDate])).sort((left, right) =>
-      left.localeCompare(right)
-    );
+    const monthlyDates = selectedGroupRows.filter((item) => item.date.startsWith(selectedMonth)).map((item) => item.date);
+    const uniqueDates = Array.from(new Set([...monthlyDates, selectedDate])).sort((left, right) => left.localeCompare(right));
 
     return uniqueDates.length ? uniqueDates : [selectedDate];
-  }, [selectedDate, selectedGroupRows]);
+  }, [selectedDate, selectedGroupRows, selectedMonth]);
   const selectedLessonIndex = Math.max(lessonDatesForGroup.indexOf(selectedDate), 0);
   const selectedSuggestedLessonTopic = getLessonTopic(selectedGroup?.course, selectedLessonIndex);
+  const canEditCurrentLesson = canEditSelectedDate && (!isLocked || isEditingSavedLesson);
   const lessonRowLookup = useMemo(() => {
     return new Map(selectedGroupRows.map((item) => [`${item.studentName}::${item.date}`, item]));
   }, [selectedGroupRows]);
+
+  useEffect(() => {
+    setIsEditingSavedLesson(false);
+  }, [selectedGroupId, selectedDate]);
 
   useEffect(() => {
     if (!selectedGroupId && ownGroups.length) {
@@ -605,51 +611,17 @@ export function TeacherAttendancePage() {
     });
   }, [isLocked, lockedRows, selectedGroupStudents]);
 
-  const attendanceMutation = useMutation({
-    mutationFn: mockApi.markGroupAttendance,
-    onSuccess: async (response) => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["attendance"] }),
-        queryClient.invalidateQueries({ queryKey: ["students"] }),
-        queryClient.invalidateQueries({ queryKey: ["notifications"] }),
-        queryClient.invalidateQueries({ queryKey: ["dashboard", "teacher"] }),
-        queryClient.invalidateQueries({ queryKey: ["dashboard", "admin"] }),
-        queryClient.invalidateQueries({ queryKey: ["student-detail"] }),
-        queryClient.invalidateQueries({ queryKey: ["teacher-student"] })
-      ]);
-
-      toast.success(response.message);
-    }
-  });
-  const homeworkMutation = useMutation({
-    mutationFn: mockApi.saveAttendanceHomework,
-    onSuccess: async (response) => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["attendance"] }),
-        queryClient.invalidateQueries({ queryKey: ["dashboard", "teacher"] }),
-        queryClient.invalidateQueries({ queryKey: ["dashboard", "admin"] }),
-        queryClient.invalidateQueries({ queryKey: ["student-detail"] }),
-        queryClient.invalidateQueries({ queryKey: ["teacher-student"] })
-      ]);
-
-      toast.success(response.message);
-    }
-  });
-  const dailyGradeMutation = useMutation({
-    mutationFn: mockApi.saveAttendanceDailyGrade,
-    onSuccess: async (response) => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["attendance"] }),
-        queryClient.invalidateQueries({ queryKey: ["dashboard", "teacher"] }),
-        queryClient.invalidateQueries({ queryKey: ["dashboard", "admin"] }),
-        queryClient.invalidateQueries({ queryKey: ["student-detail"] }),
-        queryClient.invalidateQueries({ queryKey: ["teacher-student"] }),
-        queryClient.invalidateQueries({ queryKey: ["notifications"] })
-      ]);
-
-      toast.success(response.message);
-    }
-  });
+  async function refreshAttendanceData() {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["attendance"] }),
+      queryClient.invalidateQueries({ queryKey: ["students"] }),
+      queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "teacher"] }),
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "admin"] }),
+      queryClient.invalidateQueries({ queryKey: ["student-detail"] }),
+      queryClient.invalidateQueries({ queryKey: ["teacher-student"] })
+    ]);
+  }
 
   function updateStudentDraft(
     studentId: string,
@@ -677,21 +649,23 @@ export function TeacherAttendancePage() {
   }
 
   function updateLessonAttendance(studentId: string, attendance: "present" | "absent") {
-    if (!canEditSelectedDate) {
+    if (!canEditCurrentLesson) {
       return;
     }
 
+    const existing = drafts[studentId];
+
     updateStudentDraft(studentId, {
       status: buildStatusFromMatrix(attendance),
-      homeworkScore: attendance === "absent" ? 0 : null,
-      homeworkComment: attendance === "absent" ? "" : undefined,
-      dailyGrade: attendance === "absent" ? null : null,
-      dailyGradeComment: attendance === "absent" ? "" : undefined
+      homeworkScore: attendance === "absent" ? 0 : existing?.status === "absent" ? null : existing?.homeworkScore ?? null,
+      homeworkComment: attendance === "absent" ? "" : existing?.homeworkComment ?? "",
+      dailyGrade: attendance === "absent" ? null : existing?.status === "absent" ? null : existing?.dailyGrade ?? null,
+      dailyGradeComment: attendance === "absent" ? "" : existing?.dailyGradeComment ?? ""
     });
   }
 
   function updateLessonHomework(studentId: string, homeworkScore: number) {
-    if (!isLocked) {
+    if (!canEditCurrentLesson) {
       return;
     }
 
@@ -699,7 +673,7 @@ export function TeacherAttendancePage() {
   }
 
   function updateLessonHomeworkComment(studentId: string, homeworkComment: string) {
-    if (!isLocked) {
+    if (!canEditCurrentLesson) {
       return;
     }
 
@@ -707,7 +681,7 @@ export function TeacherAttendancePage() {
   }
 
   function updateLessonDailyGrade(studentId: string, dailyGrade: number) {
-    if (!isLocked) {
+    if (!canEditCurrentLesson) {
       return;
     }
 
@@ -715,105 +689,125 @@ export function TeacherAttendancePage() {
   }
 
   function updateLessonDailyGradeComment(studentId: string, dailyGradeComment: string) {
-    if (!isLocked) {
+    if (!canEditCurrentLesson) {
       return;
     }
 
     updateStudentDraft(studentId, { dailyGradeComment });
   }
 
-  function saveAttendance() {
-    if (!selectedGroupId || !canEditSelectedDate || attendanceMutation.isPending || !selectedGroupStudents.length) {
-      return;
-    }
-
-    attendanceMutation.mutate({
-      groupId: selectedGroupId,
-      date: selectedDate,
-      lessonTopic: lessonTopicInput.trim() || selectedSuggestedLessonTopic,
-      homeworkTitle: homeworkTitleInput.trim() || undefined,
-      homeworkDueDate: homeworkTitleInput.trim() ? homeworkDueDate : undefined,
-      entries: selectedGroupStudents.map((student) => ({
-        studentId: student.id,
-        status: drafts[student.id]?.status ?? "present",
-        comment: drafts[student.id]?.comment ?? "",
-        sendNotification: drafts[student.id]?.sendNotification ?? false
-      }))
-    });
-  }
-
-  const pendingHomeworkEntries = useMemo(
+  const homeworkEntriesToSave = useMemo(
     () =>
       selectedGroupStudents
         .map((student) => {
           const savedRow = lessonRowLookup.get(`${student.fullName}::${selectedDate}`);
           const draft = drafts[student.id];
 
-          if (!savedRow || savedRow.homeworkScore !== null && savedRow.homeworkScore !== undefined) {
+          if (!draft || draft.status === "absent" || draft.homeworkScore === null || draft.homeworkScore === undefined) {
             return null;
           }
 
-          if (!draft || draft.homeworkScore === null || draft.homeworkScore === undefined) {
+          const homeworkComment = draft.homeworkComment.trim();
+          const savedHomeworkScore = savedRow?.homeworkScore ?? null;
+          const savedHomeworkComment = savedRow?.homeworkComment ?? "";
+
+          if (savedRow && savedHomeworkScore === draft.homeworkScore && savedHomeworkComment === homeworkComment) {
             return null;
           }
 
           return {
             studentId: student.id,
             homeworkScore: draft.homeworkScore,
-            homeworkComment: draft.homeworkComment.trim() || undefined
+            homeworkComment: homeworkComment || undefined
           };
         })
         .filter(Boolean) as Array<{ studentId: string; homeworkScore: number; homeworkComment?: string }>,
     [drafts, lessonRowLookup, selectedDate, selectedGroupStudents]
   );
 
-  const pendingDailyGradeEntries = useMemo(
+  const dailyGradeEntriesToSave = useMemo(
     () =>
       selectedGroupStudents
         .map((student) => {
           const savedRow = lessonRowLookup.get(`${student.fullName}::${selectedDate}`);
           const draft = drafts[student.id];
 
-          if (!savedRow || (savedRow.dailyGrade !== null && savedRow.dailyGrade !== undefined) || savedRow.status === "absent") {
+          if (!draft || draft.status === "absent" || draft.dailyGrade === null || draft.dailyGrade === undefined) {
             return null;
           }
 
-          if (!draft || draft.dailyGrade === null || draft.dailyGrade === undefined) {
+          const dailyGradeComment = draft.dailyGradeComment.trim();
+          const savedDailyGrade = savedRow?.dailyGrade ?? null;
+          const savedDailyGradeComment = savedRow?.dailyGradeComment ?? "";
+
+          if (savedRow && savedDailyGrade === draft.dailyGrade && savedDailyGradeComment === dailyGradeComment) {
             return null;
           }
 
           return {
             studentId: student.id,
             dailyGrade: draft.dailyGrade,
-            dailyGradeComment: draft.dailyGradeComment.trim() || undefined
+            dailyGradeComment: dailyGradeComment || undefined
           };
         })
         .filter(Boolean) as Array<{ studentId: string; dailyGrade: number; dailyGradeComment?: string }>,
     [drafts, lessonRowLookup, selectedDate, selectedGroupStudents]
   );
 
-  function saveHomeworkScores() {
-    if (!selectedGroupId || !isLocked || !pendingHomeworkEntries.length || homeworkMutation.isPending) {
+  const lessonSaveMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedGroupId || !canEditCurrentLesson || !selectedGroupStudents.length) {
+        throw new Error("Saqlash uchun guruh va o'quvchilarni tanlang.");
+      }
+
+      await mockApi.markGroupAttendance({
+        groupId: selectedGroupId,
+        date: selectedDate,
+        lessonTopic: lessonTopicInput.trim() || selectedSuggestedLessonTopic,
+        homeworkTitle: homeworkTitleInput.trim() || undefined,
+        homeworkDueDate: homeworkTitleInput.trim() ? homeworkDueDate : undefined,
+        entries: selectedGroupStudents.map((student) => ({
+          studentId: student.id,
+          status: drafts[student.id]?.status ?? "present",
+          comment: drafts[student.id]?.comment ?? "",
+          sendNotification: drafts[student.id]?.sendNotification ?? false
+        }))
+      });
+
+      if (homeworkEntriesToSave.length) {
+        await mockApi.saveAttendanceHomework({
+          groupId: selectedGroupId,
+          date: selectedDate,
+          entries: homeworkEntriesToSave
+        });
+      }
+
+      if (dailyGradeEntriesToSave.length) {
+        await mockApi.saveAttendanceDailyGrade({
+          groupId: selectedGroupId,
+          date: selectedDate,
+          entries: dailyGradeEntriesToSave
+        });
+      }
+
+      return { success: true, message: "Dars jurnali saqlandi." };
+    },
+    onSuccess: async (response) => {
+      await refreshAttendanceData();
+      setIsEditingSavedLesson(false);
+      toast.success(response.message);
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Dars jurnalini saqlab bo'lmadi.");
+    }
+  });
+
+  function saveLessonChanges() {
+    if (!selectedGroupId || !canEditCurrentLesson || lessonSaveMutation.isPending || !selectedGroupStudents.length) {
       return;
     }
 
-    homeworkMutation.mutate({
-      groupId: selectedGroupId,
-      date: selectedDate,
-      entries: pendingHomeworkEntries
-    });
-  }
-
-  function saveDailyGrades() {
-    if (!selectedGroupId || !isLocked || !pendingDailyGradeEntries.length || dailyGradeMutation.isPending) {
-      return;
-    }
-
-    dailyGradeMutation.mutate({
-      groupId: selectedGroupId,
-      date: selectedDate,
-      entries: pendingDailyGradeEntries
-    });
+    lessonSaveMutation.mutate();
   }
 
   return (
@@ -888,7 +882,7 @@ export function TeacherAttendancePage() {
                 <input
                   value={lessonTopicInput}
                   onChange={(event) => setLessonTopicInput(event.target.value)}
-                  disabled={isLocked}
+                  disabled={!canEditCurrentLesson || lessonSaveMutation.isPending}
                   placeholder="Bugungi mavzuni yozing..."
                   className="field-control"
                 />
@@ -898,7 +892,7 @@ export function TeacherAttendancePage() {
                 <input
                   value={homeworkTitleInput}
                   onChange={(event) => setHomeworkTitleInput(event.target.value)}
-                  disabled={isLocked}
+                  disabled={!canEditCurrentLesson || lessonSaveMutation.isPending}
                   placeholder="Uyga vazifa nomi"
                   className="field-control"
                 />
@@ -909,22 +903,32 @@ export function TeacherAttendancePage() {
                   type="date"
                   value={homeworkDueDate}
                   onChange={(event) => setHomeworkDueDate(event.target.value)}
-                  disabled={isLocked}
+                  disabled={!canEditCurrentLesson || lessonSaveMutation.isPending}
                   className="field-control"
                 />
               </label>
             </div>
-            <div className="mt-5 flex justify-end border-t border-border/70 pt-4">
-              <Button
-                className="w-full sm:w-auto"
-                variant={isLocked ? "primary" : "success"}
-                onClick={saveAttendance}
-                disabled={!selectedGroupId || !canEditSelectedDate || attendanceMutation.isPending || !selectedGroupStudents.length}
-                loading={attendanceMutation.isPending}
-              >
-                <CheckCheck size={16} className="mr-2" />
-                {attendanceMutation.isPending ? "Saqlanmoqda..." : isLocked ? "Tahrirlash" : "Saqlash"}
-              </Button>
+            <div className="mt-5 flex flex-col gap-3 border-t border-border/70 pt-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                  {isLocked ? "Saqlangan dars" : "Yangi dars"}
+                </div>
+                <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  {isEditingSavedLesson ? "Tahrirlash rejimi faol." : "Jadval joriy oy bo'yicha ko'rsatiladi."}
+                </div>
+              </div>
+              {isLocked && !isEditingSavedLesson ? (
+                <Button
+                  type="button"
+                  className="w-full sm:w-auto sm:min-w-[180px]"
+                  variant="primary"
+                  onClick={() => setIsEditingSavedLesson(true)}
+                  disabled={!canEditSelectedDate || lessonSaveMutation.isPending || !selectedGroupStudents.length}
+                >
+                  <CheckCheck size={16} className="mr-2" />
+                  Tahrirlash
+                </Button>
+              ) : null}
             </div>
           </Card>
           {selectedGroupStudents.length ? (
@@ -941,13 +945,26 @@ export function TeacherAttendancePage() {
                           </div>
                           <div className="mt-2 text-lg font-semibold text-white">O'quvchilar</div>
                         </th>
-                        <th className="lesson-journal__lesson-col border-l border-white/10 bg-primary/20 px-4 py-4 text-left">
-                          <div className="w-full text-left">
-                            <div className="text-sm font-semibold text-white">Bugun</div>
-                            <div className="mt-1 text-xs uppercase tracking-[0.16em] text-slate-300">{formatAttendanceShortDate(selectedDate)}</div>
-                            <div className="mt-2 text-xs text-slate-400">{selectedDateLabel}</div>
-                          </div>
-                        </th>
+                        {lessonDatesForGroup.map((lessonDate, lessonIndex) => {
+                          const isActiveLesson = lessonDate === selectedDate;
+                          const savedTopic = selectedGroupRows.find((item) => item.date === lessonDate && item.lessonTopic)?.lessonTopic;
+                          const lessonTopic = isActiveLesson ? lessonTopicInput.trim() || selectedSuggestedLessonTopic : savedTopic || getLessonTopic(selectedGroup?.course, lessonIndex);
+
+                          return (
+                            <th
+                              key={lessonDate}
+                              className={`lesson-journal__lesson-col border-l border-white/10 px-4 py-4 text-left ${
+                                isActiveLesson ? "bg-primary/20" : "bg-slate-900"
+                              }`}
+                            >
+                              <div className="w-full text-left">
+                                <div className="text-sm font-semibold text-white">{isActiveLesson ? "Bugun" : `${lessonIndex + 1}-dars`}</div>
+                                <div className="mt-1 text-xs uppercase tracking-[0.16em] text-slate-300">{formatAttendanceShortDate(lessonDate)}</div>
+                                <div className="mt-2 line-clamp-2 text-xs leading-5 text-slate-400">{lessonTopic}</div>
+                              </div>
+                            </th>
+                          );
+                        })}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/80">
@@ -979,9 +996,24 @@ export function TeacherAttendancePage() {
                                 </div>
                               </div>
                             </td>
-                            {[selectedDate].map((lessonDate) => {
+                            {lessonDatesForGroup.map((lessonDate) => {
                               const savedRow = lessonRowLookup.get(`${student.fullName}::${lessonDate}`);
                               const isActiveLesson = lessonDate === selectedDate;
+
+                              if (!isActiveLesson && !savedRow) {
+                                return (
+                                  <td key={`${student.id}-${lessonDate}`} className="lesson-journal__lesson-col border-l border-border/80 bg-slate-50/70 px-4 py-4 dark:bg-slate-900/30">
+                                    <div className="lesson-journal__cell">
+                                      <div className="lesson-journal__split-head">
+                                        <div className="lesson-journal__split-label">Dars yozuvi</div>
+                                        <span className="lesson-journal__state-chip lesson-journal__state-chip--muted">Yo'q</span>
+                                      </div>
+                                      <div className="lesson-journal__hint">Bu o'quvchi uchun ushbu sanada yozuv topilmadi.</div>
+                                    </div>
+                                  </td>
+                                );
+                              }
+
                               const isAttendanceLocked = Boolean(savedRow);
                               const isHomeworkLocked = Boolean(savedRow && savedRow.homeworkScore !== null && savedRow.homeworkScore !== undefined);
                               const isDailyGradeLocked = Boolean(savedRow && savedRow.dailyGrade !== null && savedRow.dailyGrade !== undefined);
@@ -991,9 +1023,9 @@ export function TeacherAttendancePage() {
                                     ? getMatrixAttendanceValue(savedRow.status)
                                     : null;
                               const isAbsentLesson = attendanceValue === "absent";
-                              const canEditAttendance = isActiveLesson && canEditSelectedDate && !attendanceMutation.isPending;
-                              const canEditHomework = isActiveLesson && isAttendanceLocked && !isHomeworkLocked && !isAbsentLesson;
-                              const canEditDailyGrade = isActiveLesson && isAttendanceLocked && !isDailyGradeLocked && !isAbsentLesson;
+                              const canEditAttendance = isActiveLesson && canEditCurrentLesson && !lessonSaveMutation.isPending;
+                              const canEditHomework = isActiveLesson && canEditCurrentLesson && !lessonSaveMutation.isPending && !isAbsentLesson;
+                              const canEditDailyGrade = isActiveLesson && canEditCurrentLesson && !lessonSaveMutation.isPending && !isAbsentLesson;
                               const homeworkScore = isActiveLesson
                                 ? (attendanceValue === "absent" ? 0 : draft.homeworkScore)
                                 : (savedRow?.homeworkScore ?? null);
@@ -1012,8 +1044,13 @@ export function TeacherAttendancePage() {
                               const dailyGradeTone = getDailyGradeTone(dailyGrade);
 
                               return (
-                                <td key={`${student.id}-${lessonDate}`} className="lesson-journal__lesson-col border-l border-border/80 bg-primary/5 px-4 py-4">
-                                  <div className="lesson-journal__cell lesson-journal__cell--active">
+                                <td
+                                  key={`${student.id}-${lessonDate}`}
+                                  className={`lesson-journal__lesson-col border-l border-border/80 px-4 py-4 ${
+                                    isActiveLesson ? "bg-primary/5" : "bg-white dark:bg-slate-950"
+                                  }`}
+                                >
+                                  <div className={`lesson-journal__cell ${isActiveLesson ? "lesson-journal__cell--active" : ""}`}>
                                 <div className="lesson-journal__split-head">
                                   <div className="lesson-journal__split-label">Davomat</div>
                                   <span
@@ -1104,7 +1141,7 @@ export function TeacherAttendancePage() {
                                         <div className="lesson-journal__select-wrap">
                                           <select
                                             value={homeworkScore ?? ""}
-                                            disabled={homeworkMutation.isPending}
+                                            disabled={lessonSaveMutation.isPending}
                                             onChange={(event) => {
                                               if (!event.target.value) {
                                                 return;
@@ -1127,7 +1164,7 @@ export function TeacherAttendancePage() {
                                         </div>
                                         <textarea
                                           value={homeworkComment}
-                                          disabled={homeworkMutation.isPending}
+                                          disabled={lessonSaveMutation.isPending}
                                           onChange={(event) => updateLessonHomeworkComment(student.id, event.target.value)}
                                           rows={3}
                                           placeholder="Uy vazifasi uchun qisqa izoh yozing..."
@@ -1144,7 +1181,7 @@ export function TeacherAttendancePage() {
                                         <AttendanceNotes homeworkComment={homeworkComment} emptyLabel={null} compact />
                                       </div>
                                     ) : isActiveLesson ? (
-                                      <div className="lesson-journal__hint">Avval davomatni saqlang.</div>
+                                      <div className="lesson-journal__hint">{isAttendanceLocked ? "Tahrirlashni bosib baholang." : "Avval davomatni saqlang."}</div>
                                     ) : (
                                       <div className="space-y-2">
                                         <div className="lesson-journal__badge-wrap">
@@ -1198,7 +1235,7 @@ export function TeacherAttendancePage() {
                                                 <button
                                                   key={grade}
                                                   type="button"
-                                                  disabled={dailyGradeMutation.isPending}
+                                                  disabled={lessonSaveMutation.isPending}
                                                   onClick={() => updateLessonDailyGrade(student.id, grade)}
                                                   className={`lesson-journal__score-button ${
                                                     isActiveGrade ? toneClass : "lesson-journal__score-button--idle"
@@ -1211,7 +1248,7 @@ export function TeacherAttendancePage() {
                                           </div>
                                           <textarea
                                             value={dailyGradeComment}
-                                            disabled={dailyGradeMutation.isPending}
+                                            disabled={lessonSaveMutation.isPending}
                                             onChange={(event) => updateLessonDailyGradeComment(student.id, event.target.value)}
                                             rows={3}
                                             placeholder="Bugungi baho uchun qisqa izoh yozing..."
@@ -1228,7 +1265,7 @@ export function TeacherAttendancePage() {
                                           <AttendanceNotes dailyGradeComment={dailyGradeComment} emptyLabel={null} compact />
                                         </div>
                                       ) : isActiveLesson ? (
-                                        <div className="lesson-journal__hint">Avval davomatni saqlang.</div>
+                                        <div className="lesson-journal__hint">{isAttendanceLocked ? "Tahrirlashni bosib baholang." : "Avval davomatni saqlang."}</div>
                                       ) : (
                                         <div className="space-y-2">
                                           <div className="lesson-journal__badge-wrap">
@@ -1255,7 +1292,7 @@ export function TeacherAttendancePage() {
                                     {isActiveLesson ? (
                                       <button
                                         type="button"
-                                        disabled={!canEditSelectedDate}
+                                        disabled={!canEditCurrentLesson || lessonSaveMutation.isPending}
                                         onClick={() => updateStudentDraft(student.id, { sendNotification: !draft.sendNotification })}
                                         className={`lesson-journal__notify ${
                                           draft.sendNotification
@@ -1288,46 +1325,43 @@ export function TeacherAttendancePage() {
                 </div>
               </div>
 
-              {isLocked ? (
-                <div className="grid gap-4 xl:grid-cols-2">
-                  <div className="flex flex-col gap-4 rounded-[24px] border border-border/80 bg-slate-50/80 p-4 dark:bg-slate-900/60 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
-                      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Uy vazifasini baholash</div>
-                      <div className="mt-1 text-base font-semibold text-slate-950 dark:text-white">Foiz va izohni kiriting.</div>
-                      <div className="mt-1 text-sm text-slate-500">Tanlanganlar: {pendingHomeworkEntries.length} ta</div>
-                    </div>
-                    <Button
-                      type="button"
-                      variant={pendingHomeworkEntries.length ? "primary" : "secondary"}
-                      onClick={saveHomeworkScores}
-                      disabled={!pendingHomeworkEntries.length || homeworkMutation.isPending}
-                      loading={homeworkMutation.isPending}
-                      className="lg:min-w-[240px]"
-                    >
-                      <CheckCheck size={16} />
-                      {homeworkMutation.isPending ? "Saqlanmoqda..." : "Uy vazifasini saqlash"}
-                    </Button>
+              <div className="flex flex-col gap-4 rounded-[24px] border border-border/80 bg-slate-50/90 p-4 shadow-sm dark:bg-slate-900/60 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                    {isLocked && !isEditingSavedLesson ? "Dars yopilgan" : "Bitta saqlash"}
                   </div>
-                  <div className="flex flex-col gap-4 rounded-[24px] border border-border/80 bg-slate-50/80 p-4 dark:bg-slate-900/60 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
-                      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Kunlik baho</div>
-                      <div className="mt-1 text-base font-semibold text-slate-950 dark:text-white">1 dan 5 gacha baho va izohni kiriting.</div>
-                      <div className="mt-1 text-sm text-slate-500">Tanlanganlar: {pendingDailyGradeEntries.length} ta</div>
-                    </div>
-                    <Button
-                      type="button"
-                      variant={pendingDailyGradeEntries.length ? "primary" : "secondary"}
-                      onClick={saveDailyGrades}
-                      disabled={!pendingDailyGradeEntries.length || dailyGradeMutation.isPending}
-                      loading={dailyGradeMutation.isPending}
-                      className="lg:min-w-[240px]"
-                    >
-                      <CheckCheck size={16} />
-                      {dailyGradeMutation.isPending ? "Saqlanmoqda..." : "Kunlik bahoni saqlash"}
-                    </Button>
+                  <div className="mt-1 text-base font-semibold text-slate-950 dark:text-white">
+                    {isLocked && !isEditingSavedLesson ? "Davomat, uy vazifasi va bahoni tahrirlash mumkin." : "Davomat, uy vazifasi va kunlik baho birga saqlanadi."}
+                  </div>
+                  <div className="mt-1 text-sm text-slate-500">
+                    Uy vazifasi: {homeworkEntriesToSave.length} ta | Kunlik baho: {dailyGradeEntriesToSave.length} ta
                   </div>
                 </div>
-              ) : null}
+                {isLocked && !isEditingSavedLesson ? (
+                  <Button
+                    type="button"
+                    variant="primary"
+                    onClick={() => setIsEditingSavedLesson(true)}
+                    disabled={!canEditSelectedDate || lessonSaveMutation.isPending}
+                    className="w-full sm:w-auto lg:min-w-[220px]"
+                  >
+                    <CheckCheck size={16} />
+                    Tahrirlash
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="success"
+                    onClick={saveLessonChanges}
+                    disabled={!selectedGroupId || !canEditCurrentLesson || lessonSaveMutation.isPending || !selectedGroupStudents.length}
+                    loading={lessonSaveMutation.isPending}
+                    className="w-full sm:w-auto lg:min-w-[240px]"
+                  >
+                    <CheckCheck size={16} />
+                    {lessonSaveMutation.isPending ? "Saqlanmoqda..." : isLocked ? "O'zgarishlarni saqlash" : "Darsni saqlash"}
+                  </Button>
+                )}
+              </div>
             </div>
           ) : (
             <EmptyState title="Guruhda o'quvchi yo'q" description="Boshqa guruhni tanlang yoki avval guruhga o'quvchi biriktiring." />

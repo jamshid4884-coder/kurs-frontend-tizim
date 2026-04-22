@@ -1748,10 +1748,6 @@ export const mockApi = {
         throw new Error("Avval shu sana uchun davomatni saqlang.");
       }
 
-      if (attendanceEntry.homeworkScore !== null && attendanceEntry.homeworkScore !== undefined) {
-        throw new Error(`${student.fullName} uchun homework bahosi allaqachon qo'yilgan.`);
-      }
-
       attendanceEntry.homeworkScore = entry.homeworkScore;
       attendanceEntry.homeworkComment = entry.homeworkComment?.trim() || undefined;
     });
@@ -1811,10 +1807,6 @@ export const mockApi = {
 
       if (attendanceEntry.status === "absent") {
         throw new Error(`${student.fullName} kelmaganligi uchun kunlik baho qo'yib bo'lmaydi.`);
-      }
-
-      if (attendanceEntry.dailyGrade !== null && attendanceEntry.dailyGrade !== undefined) {
-        throw new Error(`${student.fullName} uchun kunlik baho allaqachon qo'yilgan.`);
       }
 
       attendanceEntry.dailyGrade = entry.dailyGrade;
