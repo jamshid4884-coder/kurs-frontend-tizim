@@ -1,4 +1,4 @@
-export type Role = "ADMIN" | "TEACHER" | "STUDENT";
+export type Role = "SUPER_ADMIN" | "ADMIN" | "TEACHER" | "STUDENT";
 export type AttendanceStatus =
   | "present"
   | "absent"

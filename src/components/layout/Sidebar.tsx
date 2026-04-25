@@ -18,6 +18,18 @@ import { cn } from "@/lib/cn";
 import brandLogo from "@/rasmlar/kurs boshqaruv new.png";
 
 const navByRole: Record<Role, Array<{ label: string; caption: string; href: string; icon: LucideIcon }>> = {
+  SUPER_ADMIN: [
+    { label: "Dashboard", caption: "Platform nazorati", href: "/super-admin/dashboard", icon: LayoutDashboard },
+    { label: "O'quvchilar", caption: "Barcha markazlar", href: "/super-admin/students", icon: Users },
+    { label: "O'qituvchilar", caption: "Teacher directory", href: "/super-admin/teachers", icon: GraduationCap },
+    { label: "Guruhlar", caption: "Akademik oqim", href: "/super-admin/groups", icon: Layers3 },
+    { label: "Kurslar", caption: "Dasturlar", href: "/super-admin/courses", icon: BookOpen },
+    { label: "Davomat", caption: "Platform nazorati", href: "/super-admin/attendance", icon: ClipboardList },
+    { label: "To'lovlar", caption: "Moliya holati", href: "/super-admin/payments", icon: CreditCard },
+    { label: "Hisobotlar", caption: "Tahlil va eksport", href: "/super-admin/reports", icon: NotebookPen },
+    { label: "Xabarlar", caption: "Telegram markazi", href: "/super-admin/notifications", icon: Bell },
+    { label: "Sozlamalar", caption: "Platform boshqaruvi", href: "/super-admin/settings", icon: Settings }
+  ],
   ADMIN: [
     { label: "Dashboard", caption: "Umumiy nazorat", href: "/admin/dashboard", icon: LayoutDashboard },
     { label: "O'quvchilar", caption: "Student bazasi", href: "/admin/students", icon: Users },

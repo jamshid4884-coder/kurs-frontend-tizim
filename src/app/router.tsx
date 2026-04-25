@@ -74,6 +74,23 @@ export const router = createBrowserRouter([
             ]
           },
           {
+            path: "/super-admin",
+            element: <RoleGuard allowedRoles={["SUPER_ADMIN"]} />,
+            children: [
+              { path: "dashboard", element: <AdminDashboardPage /> },
+              { path: "students", element: <AdminStudentsPage /> },
+              { path: "students/:id", element: <AdminStudentDetailPage /> },
+              { path: "teachers", element: <AdminTeachersPage /> },
+              { path: "groups", element: <AdminGroupsPage /> },
+              { path: "courses", element: <AdminCoursesPage /> },
+              { path: "attendance", element: <AdminAttendancePage /> },
+              { path: "payments", element: <AdminPaymentsPage /> },
+              { path: "reports", element: <AdminReportsPage /> },
+              { path: "notifications", element: <AdminNotificationsPage /> },
+              { path: "settings", element: <AdminSettingsPage /> }
+            ]
+          },
+          {
             path: "/teacher",
             element: <RoleGuard allowedRoles={["TEACHER"]} />,
             children: [

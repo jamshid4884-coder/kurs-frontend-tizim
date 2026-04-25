@@ -39,6 +39,7 @@ import {
 } from "@/lib/telegram-preview";
 import { useLiveUpdates } from "@/providers/LiveUpdatesProvider";
 import type { AccountCreateResponse, AccountCredentials, AttendanceEntry, PaymentEntry, PaymentReceipt, RecordPaymentResponse, StudentSummary } from "@/types/domain";
+import { useAuthStore } from "@/store/auth-store";
 
 type StudentFilter = "all" | "paid" | "attention" | "lowAttendance" | "telegramMissing";
 type AttendanceFilter = "all" | "today" | "present" | "absent" | "late" | "attention";
@@ -69,6 +70,11 @@ type AdminCredentialModalState = {
 const TODAY = getTodayIso();
 const defaultCourseOptions = ["Ingliz tili asoslari", "Matematika tezkor kursi", "IELTS intensiv"];
 const groupScheduleOptions = ["Du, Cho, Ju - 17:00", "Se, Pa, Sha - 15:30", "Se, Pa, Sha - 18:30"] as const;
+
+function useAdminBasePath() {
+  const role = useAuthStore((state) => state.user?.role);
+  return role === "SUPER_ADMIN" ? "/super-admin" : "/admin";
+}
 
 function PageHeader({
   title,
@@ -394,6 +400,7 @@ function TelegramLiveBadge({
 }
 
 export function AdminDashboardPage() {
+  const adminBasePath = useAdminBasePath();
   const { data } = useQuery({
     queryKey: ["dashboard", "admin"],
     queryFn: () => mockApi.getDashboardMetrics("ADMIN")
@@ -445,7 +452,7 @@ export function AdminDashboardPage() {
                 {riskStudents.slice(0, 5).map((student) => (
                   <Link
                     key={student.id}
-                    to={`/admin/students/${student.id}`}
+                    to={`${adminBasePath}/students/${student.id}`}
                     className="flex items-center justify-between rounded-2xl border border-border/80 bg-slate-50/80 px-4 py-3 transition hover:border-primary/30 dark:bg-slate-900/70"
                   >
                     <div>
@@ -482,22 +489,22 @@ export function AdminDashboardPage() {
               {
                 title: "Bugun kelmaganlar",
                 description: `${absentToday} nafar o'quvchi bugun darsga kelmagan`,
-                href: "/admin/attendance"
+                href: `${adminBasePath}/attendance`
               },
               {
                 title: "Bugun ogohlantirishlar",
                 description: `${attentionToday} ta tayyor emas yoki vazifa qilmagan holat bor`,
-                href: "/admin/attendance"
+                href: `${adminBasePath}/attendance`
               },
               {
                 title: "To'lov qilmaganlar",
                 description: `${unpaidStudents} nafar o'quvchida qarzdorlik yoki ochiq to'lov bor`,
-                href: "/admin/payments"
+                href: `${adminBasePath}/payments`
               },
               {
                 title: "Telegram tarixi",
                 description: `${notifications?.length ?? 0} ta xabar logda saqlangan`,
-                href: "/admin/notifications"
+                href: `${adminBasePath}/notifications`
               }
             ].map((item) => (
               <Link
@@ -531,6 +538,7 @@ export function AdminDashboardPage() {
 }
 
 export function AdminStudentsPage() {
+  const adminBasePath = useAdminBasePath();
   const queryClient = useQueryClient();
   const { status: liveStatus } = useLiveUpdates();
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
@@ -669,7 +677,7 @@ export function AdminStudentsPage() {
             header: "O'quvchi",
             render: (row) => (
               <div>
-                <Link to={`/admin/students/${row.id}`} className="font-semibold hover:text-primary">
+                <Link to={`${adminBasePath}/students/${row.id}`} className="font-semibold hover:text-primary">
                   {row.fullName}
                 </Link>
                 <div className="text-xs text-slate-500">{row.phone}</div>

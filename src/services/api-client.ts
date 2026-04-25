@@ -189,7 +189,7 @@ async function refreshSession() {
       id: String(data.user.id),
       profileId: data.user.profileId ? String(data.user.profileId) : undefined,
       fullName: String(data.user.fullName),
-      role: String(data.user.role) as "ADMIN" | "TEACHER" | "STUDENT",
+      role: String(data.user.role) as import("@/types/domain").Role,
       phone: String(data.user.phone),
       email: data.user.email ? String(data.user.email) : undefined,
       avatar: data.user.avatar ? String(data.user.avatar) : undefined

@@ -24,12 +24,19 @@ interface AuthState {
 }
 
 const previewUsers: Record<Role, SessionUser> = {
+  SUPER_ADMIN: {
+    id: "user-super-admin",
+    fullName: "Jamshid Jalolov",
+    role: "SUPER_ADMIN",
+    phone: "+998900000000",
+    email: "jalolov554@gmail.com"
+  },
   ADMIN: {
     id: "admin-1",
     fullName: "Admin Demo",
     role: "ADMIN",
     phone: "+998900000101",
-    email: "jamshidjalolov6767@gmail.com"
+    email: "admin.demo@example.com"
   },
   TEACHER: {
     id: "teacher-1",

@@ -8,6 +8,7 @@ import { authService } from "@/services/auth-service";
 import { useAuthStore } from "@/store/auth-store";
 
 const roleLabels = {
+  SUPER_ADMIN: "Super admin",
   ADMIN: "Admin",
   TEACHER: "O'qituvchi",
   STUDENT: "O'quvchi"
@@ -87,9 +88,10 @@ export function Topbar() {
               <div className="min-w-[220px] max-w-[260px] flex-1 sm:flex-none">
                 <select
                   value={user.role}
-                  onChange={(event) => switchRolePreview(event.target.value as "ADMIN" | "TEACHER" | "STUDENT")}
+                  onChange={(event) => switchRolePreview(event.target.value as import("@/types/domain").Role)}
                   className="h-14 w-full rounded-[20px] border border-border/80 bg-white px-4 text-sm font-medium text-slate-700 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 dark:bg-slate-950 dark:text-slate-200"
                 >
+                  <option value="SUPER_ADMIN">Super admin ko'rinishi</option>
                   <option value="ADMIN">Admin ko'rinishi</option>
                   <option value="TEACHER">O'qituvchi ko'rinishi</option>
                   <option value="STUDENT">O'quvchi ko'rinishi</option>

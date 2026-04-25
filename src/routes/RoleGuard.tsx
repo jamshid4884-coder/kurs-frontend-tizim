@@ -9,12 +9,14 @@ interface RoleGuardProps {
 export function RoleGuard({ allowedRoles }: RoleGuardProps) {
   const user = useAuthStore((state) => state.user);
 
+  const homePath = user?.role === "SUPER_ADMIN" ? "/super-admin/dashboard" : user ? `/${user.role.toLowerCase()}/dashboard` : "/login";
+
   if (!user) {
     return <Navigate replace to="/login" />;
   }
 
   if (!allowedRoles.includes(user.role)) {
-    return <Navigate replace to={`/${user.role.toLowerCase()}/dashboard`} />;
+    return <Navigate replace to={homePath} />;
   }
 
   return <Outlet />;

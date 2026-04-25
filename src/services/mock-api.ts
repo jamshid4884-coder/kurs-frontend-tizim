@@ -71,7 +71,14 @@ const demoDirectory = {
     fullName: "Admin Demo",
     role: "ADMIN" as const,
     phone: "+998900000101",
-    email: "jamshidjalolov6767@gmail.com"
+    email: "admin.demo@example.com"
+  },
+  superAdmin: {
+    id: "user-super-admin",
+    fullName: "Jamshid Jalolov",
+    role: "SUPER_ADMIN" as const,
+    phone: "+998900000000",
+    email: "jalolov554@gmail.com"
   },
   teacher: {
     id: "teacher-1",
@@ -560,6 +567,14 @@ function buildParentConnectUrl(studentId: string) {
 
 const demoUsers: Array<SessionUser & { password?: string }> = [
   {
+    id: demoDirectory.superAdmin.id,
+    fullName: demoDirectory.superAdmin.fullName,
+    role: demoDirectory.superAdmin.role,
+    phone: demoDirectory.superAdmin.phone,
+    email: demoDirectory.superAdmin.email,
+    password: "jamshid4884"
+  },
+  {
     id: demoDirectory.admin.id,
     fullName: demoDirectory.admin.fullName,
     role: demoDirectory.admin.role,
@@ -992,7 +1007,7 @@ function getStudentMetrics(studentId: string): DashboardMetric[] {
 }
 
 function getDashboardChart(role: Role): ChartDatum[] {
-  if (role === "ADMIN") {
+  if (role === "ADMIN" || role === "SUPER_ADMIN") {
     return getAttendanceChart(attendance);
   }
 
@@ -1063,6 +1078,7 @@ export const mockApi = {
     await wait();
 
     const metricsByRole: Record<Role, DashboardMetric[]> = {
+      SUPER_ADMIN: getAdminMetrics(),
       ADMIN: getAdminMetrics(),
       TEACHER: getTeacherMetrics("teacher-1"),
       STUDENT: getStudentMetrics("student-1")
@@ -1071,7 +1087,7 @@ export const mockApi = {
     return {
       metrics: metricsByRole[role],
       chart: getDashboardChart(role),
-      paymentChart: role === "ADMIN" ? getPaymentDashboardChart() : getDashboardChart(role),
+      paymentChart: role === "ADMIN" || role === "SUPER_ADMIN" ? getPaymentDashboardChart() : getDashboardChart(role),
       activities: bySentAtDesc(notifications).slice(0, 5)
     };
   },

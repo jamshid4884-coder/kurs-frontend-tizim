@@ -567,6 +567,7 @@ export function LoginPage() {
     }
   });
   const isLoginBusy = isSubmitting || loginPending;
+  const dashboardPathForRole = (role: string) => (role === "SUPER_ADMIN" ? "/super-admin/dashboard" : `/${role.toLowerCase()}/dashboard`);
 
   return (
     <PublicShell>
@@ -595,7 +596,7 @@ export function LoginPage() {
                   });
                   signIn(response);
                   toast.success("Tizimga muvaffaqiyatli kirdingiz.");
-                  navigate(`/${response.user.role.toLowerCase()}/dashboard`);
+                  navigate(dashboardPathForRole(response.user.role));
                 } catch (error) {
                   toast.error(error instanceof Error ? error.message : "Kirishda xatolik yuz berdi.");
                   setLoginPending(false);
