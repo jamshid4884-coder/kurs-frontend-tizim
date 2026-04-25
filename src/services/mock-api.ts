@@ -71,7 +71,7 @@ const demoDirectory = {
     fullName: "Admin Demo",
     role: "ADMIN" as const,
     phone: "+998900000101",
-    email: "admin.demo@example.com"
+    email: "jalolov6767@gmail.com"
   },
   superAdmin: {
     id: "user-super-admin",
